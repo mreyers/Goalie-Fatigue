@@ -39,7 +39,7 @@ game <- dataFull[[13]] %>% as_tibble() %>% mutate(homezone = as.character(homezo
   # homeTeam: Still needs tidying but currently checks prev event for diff zone, then curr ev for off zone for home team and their event
   homeTeam <- game %>% mutate(marker = case_when(
                                           (lag(homezone, default = "Neu") != "Off"
-                                           | lag(ev.team) != hometeam)
+                                           | (lag(ev.team) != hometeam & lag(homezone, default = "Neu") == "Off"))
                                           & homezone == "Off"
                                           & ev.team == hometeam
                                           ~ 1,
@@ -47,7 +47,8 @@ game <- dataFull[[13]] %>% as_tibble() %>% mutate(homezone = as.character(homezo
 
   # awayTeam: Should be play is in neutral or home team's offensive zone (away team's defence) then changes to away team action in home team's def zone
   awayTeam <- game %>% mutate(markerAway = case_when(
-                                                     (lag(homezone, default = "Neu") != "Def" | lag(ev.team) == hometeam)
+                                                     (lag(homezone, default = "Neu") != "Def" | 
+                                                        (lag(ev.team) == hometeam & lag(homezone, default = "Neu") == "Def"))
                                                      & homezone == "Def"
                                                      & ev.team != hometeam
                                                      ~ 1,
@@ -88,3 +89,11 @@ awayTeam <- awayTeam %>% mutate(zoneStartAway = markerAway,
 
 # For each game (already separated because of data setup), enumerate the zone attempt we are on
 
+# Apply the group_by function to zones, now has zones defined
+shotsPerZoneHome <- homeTeam %>% group_by(zoneNum) %>% arrange(zoneNum) %>% filter(zoneNum >0) %>% count(etype == "MISS" | etype == "SHOT")
+shotsPerZoneAway <- awayTeam %>% group_by(zoneNumAway) %>% arrange(zoneNumAway) %>% filter(zoneNumAway >0) %>% count(etype == "MISS" | etype == "SHOT")
+
+# Plot shots against zone number
+library(ggplot2)
+ggplot(data = shotsPerZoneHome[shotsPerZoneHome$`etype == "MISS" | etype == "SHOT"` == TRUE,], aes(x = zoneNum, y = n))+geom_point()
+# Try to improve by adding TRUE n = 0 for those zones that dont have a shot, same for FALSE when zones dont have a non-shot
