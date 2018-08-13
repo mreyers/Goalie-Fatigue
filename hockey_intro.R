@@ -1,6 +1,9 @@
+# Github code requirement
+setwd("~/Github/Goalie-Fatigue/Data")
+
 filenames = Sys.glob("*.csv")
 data = lapply(filenames[1:50], read.csv, as.is = T, header = T, strip.white = T)
-data2 <- load(filenames[1])
+#data2 <- load(filenames[1])
 library(tidyverse)
 
 # Loading in data
@@ -46,7 +49,6 @@ for (i in 1:length(data)) {
 
 str(allGames)
 
-library(tidyverse)
 
 # Filtering tip ins
 allGames2 <- allGames %>% filter(etype %in% c("GOAL", "SHOT"))
@@ -70,13 +72,13 @@ nhl_model1 <- glm(etype ~ seconds + as.factor(period) + distance + as.factor(typ
                   data = allGames2, family = "binomial")
 
 # Predicting
-pred1 <- predict(nhl_model1, newdata = allGames2, type = "response")
+pred1 <- predict(nhl_model1, newdata = allGames2, type = "response") 
 
 # Editing
-pred1 <- ifelse(pred1 > 0.8, "SHOT", "GOAL")
+pred1 <- ifelse(pred1 > 0.8, "SHOT", "GOAL") 
 
-# Comaparing
-sum(as.vector(pred1)[-31] == as.character(allGames2$etype)[-31])/(length(pred1) - 1)
+# Comaparing: Some values are NA from prediction likely because of coordinate issues
+sum(as.vector(pred1)[-31] == as.character(allGames2$etype)[-31], na.rm = TRUE)/(length(pred1) - 1)
 
 # Looking at plot
 pred_data <- data.frame(real = as.numeric(allGames2$etype), pred = as.numeric(as.factor(pred1)))[-31,]
